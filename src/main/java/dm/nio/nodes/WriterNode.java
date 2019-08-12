@@ -16,6 +16,10 @@ import static dm.nio.Properties.*;
 
 public class WriterNode {
     public static void main(String[] args) throws IOException, InterruptedException {
+        new WriterNode().run();
+    }
+
+    void run() throws IOException, InterruptedException {
         BlockingQueue<WriteRequest> writeRequests = new ArrayBlockingQueue<>(WRITE_REQUESTS_NUM);
         Semaphore sem = new Semaphore(WRITE_REQUESTS_NUM);
 
@@ -36,7 +40,7 @@ public class WriterNode {
         }
     }
 
-    private static ByteBuffer createOutputData() {
+    private ByteBuffer createOutputData() {
         ByteBuffer buf = ByteBuffer.allocateDirect(DATA_SIZE);
 
         for (int i = 0; i < DATA_SIZE; i++)
