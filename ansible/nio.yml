@@ -1,0 +1,32 @@
+---
+
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Build maven project
+      command: mvn clean package -f ../pom.xml
+      register: mvn_result
+
+- hosts: all
+  tasks:
+    - name: Copy the JAR file to the home directory
+      copy: "src=../target/{{ nio_jar }} dest=$HOME/"
+
+    - name: Stop old nodes
+      shell: "{{ java_home }}/bin/jps | grep {{ nio_jar }} | awk '{print $1}' | xargs -I {} kill -9 {}"
+
+- hosts: readers
+  tasks:
+    - name: Run a reader node
+      shell: "nohup {{ java_home }}/bin/java
+      -DHOST={{ hostvars[groups['readers'][0]].nio_host }}
+      -DPORT={{ hostvars[groups['readers'][0]].nio_port }}
+      -jar $HOME/{{ nio_jar }} reader > $HOME/nio-reader.log &"
+
+- hosts: writers
+  tasks:
+    - name: Run a writer node
+      shell: "nohup {{ java_home }}/bin/java
+      -DHOST={{ hostvars[groups['readers'][0]].nio_host }}
+      -DPORT={{ hostvars[groups['readers'][0]].nio_port }}
+      -jar $HOME/{{ nio_jar }} writer > $HOME/nio-writer.log &"
