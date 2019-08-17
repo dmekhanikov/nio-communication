@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  reader:
+    build: .
+    ports:
+    - "4422:22"
+    - "57100:57100"
+    expose:
+    - "51700"
+  writer:
+    build: .
+    ports:
+    - "5522:22"
