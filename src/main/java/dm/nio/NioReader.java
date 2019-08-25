@@ -2,12 +2,15 @@ package dm.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.BlockingQueue;
 
 import static dm.nio.Properties.*;
 import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public class NioReader extends Worker {
     private final BlockingQueue<SocketChannel> channels;
@@ -34,9 +37,9 @@ public class NioReader extends Worker {
                 selector.select(2000);
 
                 for (SelectionKey key : selector.selectedKeys()) {
-                    if (key.isReadable())
+                    if ((key.interestOps() & OP_READ) != 0 && key.isReadable())
                         processRead(key);
-                    else if (key.isWritable())
+                    else if ((key.interestOps() & OP_WRITE) != 0 && key.isWritable())
                         processWrite(key);
                 }
             }
@@ -48,7 +51,7 @@ public class NioReader extends Worker {
     private void registerChannel(SocketChannel ch) throws IOException {
         log.log("Registering a new channel: " + ch);
 
-        SelectionKey key = ch.register(selector, SelectionKey.OP_WRITE);
+        SelectionKey key = ch.register(selector, OP_WRITE);
         key.attach(new ReadingState());
     }
 
@@ -56,20 +59,22 @@ public class NioReader extends Worker {
         ReadingState state = (ReadingState) key.attachment();
         SocketChannel ch = (SocketChannel) key.channel();
 
-        int cnt = ch.read(state.inBuf);
+        int res = ch.read(state.inBuf);
 
-        if (cnt == -1) {
+        if (res == -1) {
             log.log("Closing connection with a remote node: " + ch);
 
             ch.close();
             ch.socket().close();
+
+            return;
         }
 
-        state.received += cnt;
+        state.received += res;
 
         state.inBuf.clear();
 
-        if (cnt <= SLOW_RECEIVE_BYTES_THRESHOLD)
+        if (res <= SLOW_RECEIVE_BYTES_THRESHOLD)
             state.slowReceiveStreak++;
         else
             state.slowReceiveStreak = 0;

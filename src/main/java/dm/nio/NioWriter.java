@@ -10,6 +10,7 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.BlockingQueue;
 
 import static dm.nio.Properties.GREETING_SIZE;
+import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 public class NioWriter extends Worker {
@@ -39,9 +40,9 @@ public class NioWriter extends Worker {
                 selector.select(2000);
 
                 for (SelectionKey key : selector.selectedKeys()) {
-                    if (key.isReadable())
+                    if ((key.interestOps() & OP_WRITE) != 0 && key.isReadable())
                         processRead(key);
-                    else if (key.isWritable())
+                    else if ((key.interestOps() & OP_WRITE) != 0 && key.isWritable())
                         processWrite(key);
                 }
             }
@@ -53,7 +54,7 @@ public class NioWriter extends Worker {
     private void registerWriteRequest(WriteRequest req) throws ClosedChannelException {
         log.log("Starting processing of a new write request. Channel: " + req.channel());
 
-        SelectionKey key = req.channel().register(selector, OP_WRITE);
+        SelectionKey key = req.channel().register(selector, OP_READ);
         key.attach(new WritingState(req.buffer()));
     }
 
@@ -63,7 +64,7 @@ public class NioWriter extends Worker {
 
         ch.read(state.greetingBuf);
 
-        if (state.greetingBuf.hasRemaining()) {
+        if (!state.greetingBuf.hasRemaining()) {
             log.log("A greeting has been received. Writing. Channel: " + ch);
 
             key.interestOps(OP_WRITE);
@@ -74,9 +75,9 @@ public class NioWriter extends Worker {
         WritingState state = (WritingState) key.attachment();
         SocketChannel ch = (SocketChannel) key.channel();
 
-        int cnt = ch.write(state.outBuf);
+        int writeRes = ch.write(state.outBuf);
 
-        if (cnt == -1)
+        if (writeRes == -1)
             throw new ClosedChannelException();
 
         if (!state.outBuf.hasRemaining()) {
@@ -96,7 +97,7 @@ public class NioWriter extends Worker {
         ByteBuffer outBuf;
         ByteBuffer greetingBuf;
 
-        public WritingState(ByteBuffer outBuf) {
+        WritingState(ByteBuffer outBuf) {
             this.outBuf = outBuf;
             this.greetingBuf = ByteBuffer.allocateDirect(GREETING_SIZE);
         }
