@@ -120,6 +120,8 @@ public class NioReader extends Worker {
             for (int i = 0; i < GREETING_SIZE; i++)
                 buf.put((byte) i);
 
+            buf.flip();
+
             return buf;
         }
     }
