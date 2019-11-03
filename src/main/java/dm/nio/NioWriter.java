@@ -93,8 +93,11 @@ public class NioWriter extends Worker {
         if (!state.outBuf.hasRemaining()) {
             log.info("Finished sending data to a remote node. Closing the channel: " + ch);
 
-            closeChannel(ch);
-            finishedCallback.run();
+            try {
+                closeChannel(ch);
+            } finally {
+                finishedCallback.run();
+            }
         }
     }
 

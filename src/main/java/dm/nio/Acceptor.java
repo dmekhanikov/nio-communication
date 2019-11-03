@@ -29,7 +29,8 @@ public class Acceptor extends Thread {
             while (!Thread.interrupted()) {
                 SocketChannel ch = accept();
 
-                channelCallback.accept(ch);
+                if (ch != null)
+                    channelCallback.accept(ch);
             }
         } catch (IOException e) {
             e.printStackTrace();
