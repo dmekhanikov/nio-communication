@@ -29,4 +29,13 @@ public class Properties {
     public static String getString(String propName, String def) {
         return System.getProperty(propName, def);
     }
+
+    public static boolean getBoolean(String propName, boolean def) {
+        String val = System.getProperty(propName);
+
+        if (val == null)
+            return def;
+        else
+            return Boolean.parseBoolean(val);
+    }
 }

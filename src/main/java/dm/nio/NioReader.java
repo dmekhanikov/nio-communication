@@ -25,7 +25,7 @@ public class NioReader extends Worker {
 
     @Override
     public void run() {
-        log.log("Starting a NIO reader thread.");
+        log.info("Starting a NIO reader thread.");
 
         try {
             while (!Thread.interrupted()) {
@@ -49,7 +49,7 @@ public class NioReader extends Worker {
     }
 
     private void registerChannel(SocketChannel ch) throws IOException {
-        log.log("Registering a new channel: " + ch);
+        log.info("Registering a new channel: " + ch);
 
         SelectionKey key = ch.register(selector, OP_WRITE);
         key.attach(new ReadingState());
@@ -59,10 +59,12 @@ public class NioReader extends Worker {
         ReadingState state = (ReadingState) key.attachment();
         SocketChannel ch = (SocketChannel) key.channel();
 
+        log.debug("Processing read [channel=" + ch + ']');
+
         int res = ch.read(state.inBuf);
 
         if (res == -1) {
-            log.log("Closing connection with a remote node: " + ch);
+            log.info("Closing connection with a remote node: " + ch);
 
             ch.close();
             ch.socket().close();
@@ -84,13 +86,18 @@ public class NioReader extends Worker {
     }
 
     private void processWrite(SelectionKey key) throws IOException {
+
         SocketChannel ch = (SocketChannel) key.channel();
         ReadingState state = (ReadingState) key.attachment();
 
-        ch.write(state.greeting);
+        log.debug("Processing write [channel=" + ch + ']');
+
+        int cnt = ch.write(state.greeting);
+
+        log.debug("Bytes sent [sockCh=" + ch + ", cnt=" + cnt + ", buf=" + state.greeting + ']');
 
         if (!state.greeting.hasRemaining()) {
-            log.log("Finished sending a greeting to a remote node. Receiving. Channel: " + ch);
+            log.info("Finished sending a greeting to a remote node. Receiving. Channel: " + ch);
 
             key.interestOps(OP_READ);
         }

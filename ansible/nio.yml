@@ -21,7 +21,7 @@
       shell: "nohup {{ java_home }}/bin/java
       -DHOST={{ hostvars[groups['readers'][0]].nio_host }}
       -DPORT={{ hostvars[groups['readers'][0]].nio_port }}
-      -jar $HOME/{{ nio_jar }} reader > $HOME/nio-reader.log &"
+      -jar $HOME/{{ nio_jar }} reader > $HOME/nio-reader.log 2>&1 &"
 
 - hosts: writers
   tasks:
@@ -29,4 +29,4 @@
       shell: "nohup {{ java_home }}/bin/java
       -DHOST={{ hostvars[groups['readers'][0]].nio_host }}
       -DPORT={{ hostvars[groups['readers'][0]].nio_port }}
-      -jar $HOME/{{ nio_jar }} writer > $HOME/nio-writer.log &"
+      -jar $HOME/{{ nio_jar }} writer > $HOME/nio-writer.log 2>&1 &"

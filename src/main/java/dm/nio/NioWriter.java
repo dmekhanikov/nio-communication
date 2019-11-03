@@ -28,7 +28,7 @@ public class NioWriter extends Worker {
 
     @Override
     public void run() {
-        log.log("Starting a NIO writer thread.");
+        log.info("Starting a NIO writer thread.");
 
         try {
             while (!Thread.interrupted()) {
@@ -36,6 +36,8 @@ public class NioWriter extends Worker {
 
                 if (req != null)
                     registerWriteRequest(req);
+
+                log.debug("Selecting. Interest ops: " + interestOps(selector));
 
                 selector.select(2000);
 
@@ -52,7 +54,7 @@ public class NioWriter extends Worker {
     }
 
     private void registerWriteRequest(WriteRequest req) throws ClosedChannelException {
-        log.log("Starting processing of a new write request. Channel: " + req.channel());
+        log.info("Starting processing of a new write request. Channel: " + req.channel());
 
         SelectionKey key = req.channel().register(selector, OP_READ);
         key.attach(new WritingState(req.buffer()));
@@ -62,10 +64,12 @@ public class NioWriter extends Worker {
         WritingState state = (WritingState) key.attachment();
         SocketChannel ch = (SocketChannel) key.channel();
 
+        log.debug("Processing read [channel=" + ch + ']');
+
         ch.read(state.greetingBuf);
 
         if (!state.greetingBuf.hasRemaining()) {
-            log.log("A greeting has been received. Writing. Channel: " + ch);
+            log.info("A greeting has been received. Writing. Channel: " + ch);
 
             key.interestOps(OP_WRITE);
         }
@@ -75,13 +79,15 @@ public class NioWriter extends Worker {
         WritingState state = (WritingState) key.attachment();
         SocketChannel ch = (SocketChannel) key.channel();
 
+        log.debug("Processing write [channel=" + ch + ']');
+
         int writeRes = ch.write(state.outBuf);
 
         if (writeRes == -1)
             throw new ClosedChannelException();
 
         if (!state.outBuf.hasRemaining()) {
-            log.log("Finished sending data to a remote node. Closing the channel: " + ch);
+            log.info("Finished sending data to a remote node. Closing the channel: " + ch);
 
             closeChannel(ch);
             finishedCallback.run();
