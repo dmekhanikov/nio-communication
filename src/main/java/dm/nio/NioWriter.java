@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 
 import static dm.nio.Properties.GREETING_SIZE;
@@ -41,8 +42,11 @@ public class NioWriter extends Worker {
 
                 selector.select(2000);
 
-                for (SelectionKey key : selector.selectedKeys()) {
-                    if ((key.interestOps() & OP_WRITE) != 0 && key.isReadable())
+                for (Iterator<SelectionKey> iter = selector.selectedKeys().iterator(); iter.hasNext(); ) {
+                    SelectionKey key = iter.next();
+                    iter.remove();
+
+                    if ((key.interestOps() & OP_READ) != 0 && key.isReadable())
                         processRead(key);
                     else if ((key.interestOps() & OP_WRITE) != 0 && key.isWritable())
                         processWrite(key);
